@@ -12,6 +12,7 @@ from model.seq2seq import Seq2Seq
 from dataset import Seq2SeqDataset
 from model.utils import EOS_INDEX, PAD_INDEX, sentence_clip, tokenize
 from model.criterion import WordCrossEntropy, SentenceCrossEntropy
+from metric.evaluation import moses_multi_bleu
 import pickle
 from nltk.translate.bleu_score import corpus_bleu
 
@@ -124,7 +125,7 @@ class Trainer(object):
             with torch.no_grad():
                 output = model.decode(src, trg_lens.max().item() + 1)
                 texts = self.ndarray2texts(output.cpu().numpy())
-                print(texts[0])
+                # print(texts[0])
                 pred.extend(texts)
         path = './data/output/pred' + (('-epoch-' + str(epoch)) if epoch is not None else '') + '.txt'
         self.write_file(pred, path)
@@ -137,13 +138,11 @@ class Trainer(object):
             file.write(text + '\n')
 
     def calculate_bleu(self, hypotheses_path, references_path):
-        hypotheses_file = open(hypotheses_path, 'r', encoding='utf-8')
-        references_file = open(references_path, 'r', encoding='utf-8')
-        hyp_trans = lambda x: tokenize(x.strip())
-        ref_trans = lambda x: [tokenize(x.strip())]
-        hypotheses = list(map(hyp_trans, hypotheses_file.readlines()))
-        references = list(map(ref_trans, references_file.readlines()))
-        bleu = corpus_bleu(references, hypotheses, weights=[1, 0, 0, 0])
+        hypotheses = open(hypotheses_path, 'r', encoding='utf-8').readlines()
+        references = open(references_path, 'r', encoding='utf-8').readlines()
+        hypotheses = [x.strip() for x in hypotheses]
+        references = [x.strip() for x in references]
+        bleu = moses_multi_bleu(hypotheses, references)
         return bleu
 
     def save_model(self, model, epoch=None):

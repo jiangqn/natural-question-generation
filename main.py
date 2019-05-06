@@ -151,7 +151,7 @@ class Trainer(object):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--rnn_type', type=str, default='LSTM')
+parser.add_argument('--rnn_type', type=str, default='GRU')
 parser.add_argument('--attention_type', type=str, default='Bilinear', choices=['Dot', 'ScaledDot', 'Concat', 'Bilinear', 'MLP'])
 parser.add_argument('--embed_size', type=int, default=300)
 parser.add_argument('--vocab_size', type=int, default=37411)

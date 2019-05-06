@@ -1,0 +1,12 @@
+2019.05.06 17:10:41
+train_num	70484
+train_src_max_len	444
+train_trg_max_len	60
+dev_num	10570
+dev_src_max_len	270
+dev_trg_max_len	35
+test_num	11877
+test_src_max_len	140
+test_trg_max_len	37
+total_words	78476
+vocab_size	37411

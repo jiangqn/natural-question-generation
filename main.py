@@ -75,7 +75,7 @@ class Trainer(object):
         model = self.make_model()
         model = model.cuda()
         print(model)
-        criterion = SentenceCrossEntropy()
+        criterion = WordCrossEntropy()
         optimizer = optim.Adam(model.parameters(), lr=self._config.learning_rate)
 
         train_loader, dev_loader = self.make_data()

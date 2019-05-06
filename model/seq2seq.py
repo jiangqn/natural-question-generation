@@ -44,11 +44,11 @@ class Seq2Seq(nn.Module):
         src = sentence_clip(src)
         src_mask = (src != PAD_INDEX)
         src_lens = src_mask.long().sum(dim=1, keepdim=False)
-        src_memory, init_states = self._encode(src, src_lens)
+        src_memory, init_states = self.encode(src, src_lens)
         init_output = self.decoder.get_init_output(src_memory, src_lens, init_states)
         return self.decoder(src_memory, src_mask, init_states, init_output, trg)
 
-    def _encode(self, src, src_lens):
+    def encode(self, src, src_lens):
         """
         :param src: LongTensor (batch_size, time_step)
         :param src_lens: LongTensor (batch_size,)
@@ -67,7 +67,7 @@ class Seq2Seq(nn.Module):
         src = sentence_clip(src)
         src_mask = (src != PAD_INDEX)
         src_lens = src_mask.long().sum(dim=1, keepdim=False)
-        src_memory, init_states = self._encode(src, src_lens)
+        src_memory, init_states = self.encode(src, src_lens)
         init_output = self.decoder.get_init_output(src_memory, src_lens, init_states)
         batch_size = src_memory.size(0)
         token = torch.tensor([SOS_INDEX] * batch_size).cuda()
@@ -91,7 +91,7 @@ class Seq2Seq(nn.Module):
         src = sentence_clip(src)
         src_mask = (src != PAD_INDEX)
         src_lens = src_mask.long().sum(dim=1, keepdim=False)
-        src_memory, src_mask, init_states = self._encode(src, src_lens)
+        src_memory, init_states = self.encode(src, src_lens)
         init_output = self.decoder.get_init_output(src_memory, src_lens, init_states)
         batch_size, time_step, hidden_size = src_memory.size()
         src_memory = src_memory.repeat(beam_size, 1, 1, 1).view(beam_size * batch_size, time_step, hidden_size).contiguous()

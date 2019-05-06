@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from model.utils import SOS_INDEX, EOS_INDEX
 from model.attention import get_attention
 from model.multi_layer_rnn_cell import MultiLayerLSTMCell, MultiLayerGRUCell
+from model.beam_search import Beamer
 
 class Decoder(nn.Module):
 
@@ -58,6 +59,61 @@ class Decoder(nn.Module):
             logits.append(logit)
         logits = torch.stack(logits, dim=1)
         return logits
+
+    def decode(self, src_memory, src_mask, init_states, init_output, max_len):
+        """
+        :param src_memory: FloatTensor (batch_size, src_time_step, hidden_size)
+        :param src_mask: ByteTensor (batch_size, src_time_step)
+        :param init_states: (hidden, cell) or hidden
+            hidden: FloatTensor (num_layers, batch_size, hidden_size)
+            cell: FloatTensor (num_layers, batch_size, hidden_size)
+        :param init_output: FloatTensor (batch_size, embed_size)
+        :param max_len: int
+        :return:
+        """
+        batch_size = src_memory.size(0)
+        token = torch.LongTensor([SOS_INDEX] * batch_size).to(src_memory.device)
+        states = init_states
+        output = init_output
+        outputs = []
+        for _ in range(max_len):
+            logit, states, output = self.step(src_memory, src_mask, token, states, output)
+            token = torch.argmax(logit, dim=1, keepdim=False)
+            outputs.append(token)
+        outputs = torch.stack(outputs, dim=1)
+        return outputs
+
+    def beam_decode(self, src_memory, src_mask, init_states, init_output, max_len, beam_size):
+        """
+        :param src_memory: FloatTensor (batch_size, src_time_step, hidden_size)
+        :param src_mask: ByteTensor (batch_size, src_time_step)
+        :param init_states: (hidden, cell) or hidden
+            hidden: FloatTensor (num_layers, batch_size, hidden_size)
+            cell: FloatTensor (num_layers, batch_size, hidden_size)
+        :param init_output: FloatTensor (batch_size, embed_size)
+        :param max_len: int
+        :param beam_size: int
+        :return:
+        """
+        batch_size, time_step, hidden_size = src_memory.size()
+        src_memory = src_memory.repeat(beam_size, 1, 1, 1).view(beam_size * batch_size, time_step, hidden_size).contiguous()
+        src_mask = src_mask.repeat(beam_size, 1, 1).view(beam_size * batch_size, time_step).contiguous()
+        beamer = Beamer(
+            states=init_states,
+            output=init_output,
+            beam_size=beam_size,
+            remove_repeat_triple_grams=True
+        )
+        for _ in range(max_len):
+            token, states, output = beamer.pack_batch()
+            logit, states, output = self.step(
+                src_memory, src_mask, token, states, output
+            )
+            log_prob = F.log_softmax(logit, dim=-1)
+            log_prob, token = log_prob.topk(k=beam_size, dim=-1)
+            beamer.update_beam(token, log_prob, states, output)
+        outputs = beamer.get_best_sequences(max_len)
+        return outputs
 
     def step(self, src_memory, src_mask, token, prev_states, prev_output):
         """

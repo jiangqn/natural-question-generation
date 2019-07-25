@@ -56,13 +56,13 @@ class Trainer(object):
             dataset=train_dataset,
             batch_size=self._config.batch_size,
             shuffle=True,
-            num_workers=2
+            pin_memory=True
         )
         dev_loader = DataLoader(
             dataset=dev_dataset,
             batch_size=self._config.batch_size,
             shuffle=False,
-            num_workers=2
+            pin_memory=True
         )
         return train_loader, dev_loader
 
